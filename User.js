@@ -93,11 +93,11 @@ module.exports = {
                                 var old_quantity = Number(result[0].quantity);
                                 var new_quantity = (Number(old_quantity) + Number(quantity));
                                 var new_buyPrice = (buyPrice * old_quantity + price * quantity) / (Number(old_quantity) + Number(quantity));
-                                connection.query('UPDATE asset SET buyPrice = ?', [new_buyPrice], function(err, result, field){
+                                connection.query('UPDATE asset SET buyPrice = ? WHERE stockID = ? AND email = ?', [new_buyPrice, stockID, email], function(err, result, field){
                                     if(err) throw err;
                                 });
 
-                                connection.query('UPDATE asset SET quantity = ?', [new_quantity], function(err, result, field){
+                                connection.query('UPDATE asset SET quantity = ? WHERE stockID = ? AND email = ?', [new_quantity, stockID, email], function(err, result, field){
                                     if(err) throw err;
                                 });
                             }
@@ -144,19 +144,41 @@ module.exports = {
                 var old_quantity = Number(result[0].quantity);
                 var new_quantity = Number(old_quantity) - Number(quantity);
                 var new_buyPrice = ( (old_buyPrice * old_quantity) - (quantity * price) ) / new_quantity;
-                connection.query('UPDATE asset SET buyPrice = ? WHERE email = ? AND stockID = ?', [new_buyPrice, email, stockID], function(err, result, field){
-                    if(err) throw err;
+                if(new_quantity == 0)
+                {
+                    connection.query('DELETE FROM asset WHERE email = ? AND stockID = ?', [email, stockID], function(err, result, field){
+                        if(err) throw err;
+                    });
+                }
+                else {
+                connection.query('UPDATE asset SET quantity = ? WHERE email = ? AND stockID = ?', [new_quantity, email, stockID], function (err, result, field) {
+                    if (err) throw err;
                 });
-                connection.query('UPDATE asset SET quantity = ? WHERE email = ? AND stockID = ?', [new_quantity, email, stockID], function(err, result, field) {
-                    if(err) throw err;
-                });
-
+                }
 
                 resolve(1);
             }, function(status) {
                 reject(-1);
             });
 
+        });
+    },
+
+    getAssets: function(email) {
+        return new Promise( function(resolve, reject) {
+            connection.query('SELECT * FROM asset WHERE email = ?', [email], function(err, result, field) {
+                if(err) throw err;
+                resolve(result);
+            });
+        });
+    },
+
+    getTransactions: function(email) {
+        return new Promise( function(resolve, reject) {
+            connection.query('SELECT * FROM transaction WHERE email = ?', [email], function(err, result, field) {
+                if(err) throw err;
+                resolve(result);
+            });
         });
     },
 };
